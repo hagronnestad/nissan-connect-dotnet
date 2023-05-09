@@ -13,7 +13,7 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
     <IncludeSymbols>False</IncludeSymbols>
-	<PackageVersion>1.0.2</PackageVersion>
+	<PackageVersion>$(PackageVersion)</PackageVersion>
 	<PackageProjectUrl>https://heinandre.no/nissan-connect-dotnet/</PackageProjectUrl>
 	<RepositoryUrl>https://github.com/hagronnestad/nissan-connect-dotnet</RepositoryUrl>
 	<PackageReadmeFile>README.md</PackageReadmeFile>
