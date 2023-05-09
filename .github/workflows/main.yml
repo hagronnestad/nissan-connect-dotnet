@@ -1,15 +1,9 @@
 name: CI
 
 on:
-  create:
-    branches: 
-      - release/**
   push:
-    branches:
-    - main
-  pull_request:
-    branches:
-    - main
+    tags:
+    - '*'
     
 jobs:
   build:
@@ -35,7 +29,7 @@ jobs:
         dotnet-version: 6.0.x
 
     - name: Build
-      run: dotnet build $SOLUTION --configuration $BUILD_CONFIG --no-restore
+      run: dotnet build $SOLUTION --configuration $BUILD_CONFIG -p:Version=${{github.ref_name}} --no-restore
 
     - name: Publish
       run: nuget push **\*.nupkg -Source 'https://api.nuget.org/v3/index.json' -ApiKey ${{secrets.NUGET_API_KEY}}
