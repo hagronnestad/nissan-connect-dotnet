@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <Title>Nissan Connect Library</Title>
+    <Authors>hag</Authors>
+    <Description>A client library for the NissanConnect API. This library targets vehicles produced after May 2019. Based on the great https://gitlab.com/tobiaswkjeldsen/dartnissanconnect library.</Description>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>nissanconnect;nissan connect;nissan</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>True</PackageRequireLicenseAcceptance>
+    <IncludeSymbols>False</IncludeSymbols>
+	<PackageVersion>1.0.0-beta1</PackageVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Net.Http.Json" Version="7.0.1" />
+  </ItemGroup>
+
+</Project>
