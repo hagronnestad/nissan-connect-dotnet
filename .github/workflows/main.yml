@@ -16,7 +16,7 @@ jobs:
 
     env:
       BUILD_CONFIG: 'Release'
-      SOLUTION: '\NissanConnect\NissanConnect.sln'
+      SOLUTION: './NissanConnect/NissanConnect.sln'
 
     runs-on: ubuntu-latest
 
