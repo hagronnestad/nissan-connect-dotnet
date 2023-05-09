@@ -29,7 +29,7 @@ This repository contains a C# .NET client library for the unofficial Nissan Conn
 
 This library is available as a Nuget [here](https://www.nuget.org/packages/NissanConnectLib).
 
-![Nuget](https://img.shields.io/nuget/v/NissanConnectLib)
+[![Nuget](https://img.shields.io/nuget/v/NissanConnectLib)](https://www.nuget.org/packages/NissanConnectLib)
 
 *Nuget package installation commands:*
 ```
