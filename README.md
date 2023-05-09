@@ -1,6 +1,6 @@
 # Nissan Connect Client Library
 
-This repository contains a C# .NET client library for the unofficial Nissan Connect API. This library is based on the great [dartnissanconnect](https://gitlab.com/tobiaswkjeldsen/dartnissanconnect)-library by @Tobiaswk.
+This repository contains a C# .NET client library for the unofficial Nissan Connect API. This library is based on the great [dartnissanconnect](https://gitlab.com/tobiaswkjeldsen/dartnissanconnect)-library by [@Tobiaswk](https://github.com/Tobiaswk).
 
 ⚠️ This library supports the EU-region only.
 
@@ -25,9 +25,9 @@ This repository contains a C# .NET client library for the unofficial Nissan Conn
 
 ## Nuget
 
-This library is available as a Nuget [here]([README.md](https://www.nuget.org/packages/NissanConnectLib)).
+This library is available as a Nuget [here](https://www.nuget.org/packages/NissanConnectLib).
 
-*Package installation commands:*
+*Nuget package installation commands:*
 ```
 dotnet add package NissanConnectLib 
 
