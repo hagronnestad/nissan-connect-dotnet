@@ -14,7 +14,7 @@ C# .NET client library for the unofficial Nissan Connect API. This library is ba
 
 *Output preview of the example program:*
 
-![](Screenshots/01-example-output.png)
+![](https://raw.githubusercontent.com/hagronnestad/nissan-connect-dotnet/e84c441f82e686ddef96862a54c236a8388720e6/Screenshots/01-example-output.png)
 
 
 ## More Information
