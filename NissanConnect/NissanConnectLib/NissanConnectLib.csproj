@@ -16,11 +16,11 @@
 	<PackageVersion>$(PackageVersion)</PackageVersion>
 	<PackageProjectUrl>https://heinandre.no/nissan-connect-dotnet/</PackageProjectUrl>
 	<RepositoryUrl>https://github.com/hagronnestad/nissan-connect-dotnet</RepositoryUrl>
-	<PackageReadmeFile>README.md</PackageReadmeFile>
+	<PackageReadmeFile>README-nuget.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <None Include="..\..\README.md">
+    <None Include="..\..\README-nuget.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
