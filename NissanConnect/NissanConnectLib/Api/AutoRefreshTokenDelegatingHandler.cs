@@ -29,8 +29,7 @@ internal class AutoRefreshTokenDelegatingHandler : DelegatingHandler
             // Try to make the request
             var response = await base.SendAsync(request, cancellationToken);
 
-            if (response.StatusCode == HttpStatusCode.Unauthorized
-                || response.StatusCode == HttpStatusCode.Forbidden) // TODO: Checking for HttpStatusCode.Forbidden might not be needed
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
             {
 
                 // The request failed, let's try to refresh our access token
