@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using NissanConnectLib.Enums;
+using System.Text.Json.Serialization;
 
 namespace NissanConnectLib.Models
 {
@@ -14,10 +15,10 @@ namespace NissanConnectLib.Models
         public int TimeRequiredToFullSlow { get; set; }
 
         [JsonPropertyName("plugStatus")]
-        public int PlugStatus { get; set; }
+        public PlugStatus PlugStatus { get; set; }
 
         [JsonPropertyName("chargeStatus")]
-        public int ChargeStatus { get; set; }
+        public ChargeStatus ChargeStatus { get; set; }
 
         [JsonPropertyName("batteryCapacity")]
         public int BatteryCapacity { get; set; }
@@ -44,6 +45,9 @@ namespace NissanConnectLib.Models
         public DateTimeOffset? LastUpdateTime { get; set; }
 
         [JsonPropertyName("chargePower")]
-        public int ChargePower { get; set; }
+        public ChargePower ChargePower { get; set; }
+
+
+        public TimeSpan? BatteryStatusAge => DateTimeOffset.UtcNow - LastUpdateTime?.UtcDateTime;
     }
 }
