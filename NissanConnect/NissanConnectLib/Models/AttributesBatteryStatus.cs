@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace NissanConnectLib.Models
 {
-    public class BatteryStatus
+    public class AttributesBatteryStatus
     {
         [JsonPropertyName("id")]
         public string? Id { get; set; }

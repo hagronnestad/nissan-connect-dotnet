@@ -2,9 +2,9 @@
 
 namespace NissanConnectLib.Models
 {
-    public class CarsResult
+    public class ApiResult<T>
     {
         [JsonPropertyName("data")]
-        public List<Car>? Data { get; set; }
+        public ApiResultData<T>? Data { get; set; }
     }
 }

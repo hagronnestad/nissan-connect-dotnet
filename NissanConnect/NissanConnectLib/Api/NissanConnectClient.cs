@@ -1,8 +1,8 @@
 ﻿using NissanConnectLib.Exceptions;
 using NissanConnectLib.Models;
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
-using System.Text.Json;
 using System.Web;
 using static NissanConnectLib.Configuration;
 
@@ -10,11 +10,6 @@ namespace NissanConnectLib.Api;
 
 public class NissanConnectClient
 {
-    private readonly JsonSerializerOptions _jsonSerializerOptions = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
-
     private readonly string _authBaseUrl;
     private readonly string _realm;
     private readonly string _clientId;
@@ -95,9 +90,8 @@ public class NissanConnectClient
     /// <exception cref="NotLoggedInException"></exception>
     public async Task<string?> GetUserId()
     {
-        var r = await _httpClient.GetAsync($"{_userAdapterBaseUrl}/v1/users/current");
-        var res = await r.Content.ReadFromJsonAsync<UserIdResult>(_jsonSerializerOptions);
-        return res?.UserId;
+        var r = await _httpClient.GetFromJsonAsync<UserIdResult>($"{_userAdapterBaseUrl}/v1/users/current");
+        return r?.UserId;
     }
 
     /// <summary>
@@ -108,9 +102,8 @@ public class NissanConnectClient
     /// <exception cref="NotLoggedInException"></exception>
     public async Task<List<Car>?> GetCars(string userId)
     {
-        var r = await _httpClient.GetAsync($"{_userBaseUrl}/v5/users/{userId}/cars");
-        var res = await r.Content.ReadFromJsonAsync<CarsResult>(_jsonSerializerOptions);
-        return res?.Data;
+        var r = await _httpClient.GetFromJsonAsync<CarsResult>($"{_userBaseUrl}/v5/users/{userId}/cars");
+        return r?.Data;
     }
 
     /// <summary>
@@ -119,18 +112,17 @@ public class NissanConnectClient
     /// <param name="vin"></param>
     /// <returns></returns>
     /// <exception cref="NotLoggedInException"></exception>
-    public async Task<BatteryStatusResult?> GetBatteryStatus(string vin, bool forceRefresh = false, TimeSpan? waitTime = null)
+    public async Task<AttributesBatteryStatus?> GetBatteryStatus(string vin, bool forceRefresh = false, TimeSpan? waitTime = null)
     {
         if (forceRefresh)
         {
-            if (waitTime is null) waitTime = TimeSpan.FromSeconds(30);
+            waitTime ??= TimeSpan.FromSeconds(30);
             await RefreshBatteryStatus(vin);
             await Task.Delay(waitTime.Value);
         }
 
-        var r = await _httpClient.GetAsync($"{_carAdapterBaseUrl}/v1/cars/{vin}/battery-status");
-        var res = await r.Content.ReadFromJsonAsync<BatteryStatusResultData>(_jsonSerializerOptions);
-        return res?.Data;
+        var r = await _httpClient.GetFromJsonAsync<ApiResult<AttributesBatteryStatus>>($"{_carAdapterBaseUrl}/v1/cars/{vin}/battery-status");
+        return r?.Data?.Attributes;
     }
 
     /// <summary>
@@ -139,7 +131,7 @@ public class NissanConnectClient
     /// <param name="vin"></param>
     /// <returns></returns>
     /// <exception cref="NotLoggedInException"></exception>
-    public async Task<BatteryStatusResult?> RefreshBatteryStatus(string vin)
+    public async Task<bool> RefreshBatteryStatus(string vin)
     {
         var data = new
         {
@@ -152,15 +144,111 @@ public class NissanConnectClient
         var r = await _httpClient.PostAsync($"{_carAdapterBaseUrl}/v1/cars/{vin}/actions/refresh-battery-status",
             JsonContent.Create(data, MediaTypeHeaderValue.Parse("application/vnd.api+json")));
 
-        var res = await r.Content.ReadFromJsonAsync<BatteryStatusResultData>(_jsonSerializerOptions);
-        return res?.Data;
+        return r.IsSuccessStatusCode;
+    }
+
+    /// <summary>
+    /// Gets the HVAC status of the specified car.
+    /// </summary>
+    /// <param name="vin"></param>
+    /// <returns></returns>
+    /// <exception cref="NotLoggedInException"></exception>
+    public async Task<AttributesHvacStatus?> GetHvacStatus(string vin, bool forceRefresh = false, TimeSpan? waitTime = null)
+    {
+        if (forceRefresh)
+        {
+            waitTime ??= TimeSpan.FromSeconds(30);
+            await RefreshHvacStatus(vin);
+            await Task.Delay(waitTime.Value);
+        }
+
+        var r = await _httpClient.GetFromJsonAsync<ApiResult<AttributesHvacStatus>>($"{_carAdapterBaseUrl}/v1/cars/{vin}/hvac-status");
+        return r?.Data?.Attributes;
+    }
+
+    /// <summary>
+    /// Refresh the HVAC status of the specified car. (Untested!)
+    /// </summary>
+    /// <param name="vin"></param>
+    /// <returns></returns>
+    /// <exception cref="NotLoggedInException"></exception>
+    public async Task<bool> RefreshHvacStatus(string vin)
+    {
+        var data = new
+        {
+            data = new
+            {
+                type = "RefreshHvacStatus"
+            }
+        };
+
+        var r = await _httpClient.PostAsync($"{_carAdapterBaseUrl}/v1/cars/{vin}/actions/refresh-hvac-status",
+            JsonContent.Create(data, MediaTypeHeaderValue.Parse("application/vnd.api+json")));
+
+        return r.IsSuccessStatusCode;
+    }
+
+    /// <summary>
+    /// Refresh the location of the specified car. (Untested!)
+    /// </summary>
+    /// <param name="vin"></param>
+    /// <returns></returns>
+    /// <exception cref="NotLoggedInException"></exception>
+    public async Task<bool> RefreshLocation(string vin)
+    {
+        var data = new
+        {
+            data = new
+            {
+                type = "RefreshLocation"
+            }
+        };
+
+        var r = await _httpClient.PostAsync($"{_carAdapterBaseUrl}/v1/cars/{vin}/actions/refresh-location",
+            JsonContent.Create(data, MediaTypeHeaderValue.Parse("application/vnd.api+json")));
+
+        return r.IsSuccessStatusCode;
+    }
+
+    /// <summary>
+    /// Gets the cockpit status of the specified car.
+    /// </summary>
+    /// <param name="vin"></param>
+    /// <returns></returns>
+    /// <exception cref="NotLoggedInException"></exception>
+    public async Task<AttributesCockpitStatus?> GetCockpitStatus(string vin)
+    {
+        var r = await _httpClient.GetFromJsonAsync<ApiResult<AttributesCockpitStatus>>($"{_carAdapterBaseUrl}/v1/cars/{vin}/cockpit");
+        return r?.Data?.Attributes;
+    }
+
+    /// <summary>
+    /// Wake up the specified car (vehicle gateway?).
+    /// </summary>
+    /// <param name="vin"></param>
+    /// <returns></returns>
+    /// <exception cref="NotLoggedInException"></exception>
+    public async Task<bool> WakeUpVehicle(string vin)
+    {
+        var data = new
+        {
+            data = new
+            {
+                type = "WakeUpVehicle"
+            }
+        };
+
+        var r = await _httpClient.PostAsync($"{_carAdapterBaseUrl}/v1/cars/{vin}/actions/wake-up-vehicle",
+            JsonContent.Create(data, MediaTypeHeaderValue.Parse("application/vnd.api+json")));
+
+        return r.IsSuccessStatusCode;
     }
 
 
     private async Task<AuthenticateAuthIdResponse?> InitAuthentication()
     {
         var r = await _httpClient.PostAsync($"{_authBaseUrl}/json/realms/root/realms/{_realm}/authenticate", null);
-        var res = await r.Content.ReadFromJsonAsync<AuthenticateAuthIdResponse>(_jsonSerializerOptions);
+        var res = await r.Content.ReadFromJsonAsync<AuthenticateAuthIdResponse>();
         return res;
     }
 
@@ -176,7 +264,7 @@ public class NissanConnectClient
         }
 
         var r = await _httpClient.PostAsJsonAsync($"{_authBaseUrl}/json/realms/root/realms/{_realm}/authenticate", initResponse);
-        var res = await r.Content.ReadFromJsonAsync<AuthenticateTokenIdResponse>(_jsonSerializerOptions);
+        var res = await r.Content.ReadFromJsonAsync<AuthenticateTokenIdResponse>();
         return res;
     }
 
@@ -185,7 +273,7 @@ public class NissanConnectClient
         var r = await _httpClient.GetAsync(
             $"{_authBaseUrl}/oauth2/{_realm}/authorize?client_id={_clientId}&redirect_uri={_redirectUri}&response_type=code&scope={_scope}&nonce=sdfdsfez&state=af0ifjsldkj");
 
-        if (r.StatusCode == System.Net.HttpStatusCode.Found)
+        if (r.StatusCode == HttpStatusCode.Found)
         {
             var location = r.Headers.Location;
             if (location != null)
@@ -203,7 +291,7 @@ public class NissanConnectClient
         var r = await _httpClient.PostAsync(
             $"{_authBaseUrl}/oauth2/{_realm}/access_token?code={code}&client_id={_clientId}&client_secret={_clientSecret}&redirect_uri={_redirectUri}&grant_type=authorization_code", null);
 
-        var res = await r.Content.ReadFromJsonAsync<OAuthAccessTokenResult>(_jsonSerializerOptions);
+        var res = await r.Content.ReadFromJsonAsync<OAuthAccessTokenResult>();
         return res;
     }
 
@@ -220,7 +308,7 @@ public class NissanConnectClient
         var r = await _httpClient.PostAsync($"{_authBaseUrl}/oauth2/{_realm}/access_token",
             new FormUrlEncodedContent(data));
 
-        var res = await r.Content.ReadFromJsonAsync<OAuthAccessTokenResult>(_jsonSerializerOptions);
+        var res = await r.Content.ReadFromJsonAsync<OAuthAccessTokenResult>();
         return res;
     }
 }
