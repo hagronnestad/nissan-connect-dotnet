@@ -4,7 +4,7 @@
 
 This repository contains a C# .NET client library for the unofficial Nissan Connect API. This library is based on the great [dartnissanconnect](https://gitlab.com/tobiaswkjeldsen/dartnissanconnect)-library by [@Tobiaswk](https://github.com/Tobiaswk).
 
-⚠️ This library supports the EU-region only.
+⚠️ This library supports the EU-region only. (I think?)
 
 ---
 
