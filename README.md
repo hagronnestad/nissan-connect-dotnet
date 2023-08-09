@@ -13,6 +13,7 @@ This repository contains a C# .NET client library for the unofficial Nissan Conn
 - [Nissan Connect Client Library](#nissan-connect-client-library)
   - [Example Program](#example-program)
   - [Nuget](#nuget)
+    - [Publish Nuget Package](#publish-nuget-package)
   - [Disclaimer](#disclaimer)
 
 
@@ -39,6 +40,10 @@ PM> NuGet\Install-Package NissanConnectLib
 
 <PackageReference Include="NissanConnectLib" Version="" />
 ```
+
+
+### Publish Nuget Package
+Create a new GitHub Release with a tag to trigger the `Nuget Release`-action.
 
 
 ## Disclaimer
