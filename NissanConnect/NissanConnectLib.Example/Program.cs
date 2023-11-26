@@ -20,7 +20,7 @@ namespace NissanConnectLib.Example
                 var cachedToken = JsonSerializer.Deserialize<OAuthAccessTokenResult>(File.ReadAllText(TOKEN_CACHE_FILE));
                 ncc.AccessToken = cachedToken;
 
-                if (ncc.GetUserId() is null)
+                if (await ncc.GetUserId() is null)
                 {
                     Console.WriteLine("Could not get user ID using cached token, deleting cache file...");
                     File.Delete(TOKEN_CACHE_FILE);
