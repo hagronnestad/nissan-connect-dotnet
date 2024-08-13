@@ -1,6 +1,7 @@
 ﻿using System.Net.Http.Headers;
 using System.Net;
 using NissanConnectLib.Exceptions;
+using System.Diagnostics;
 
 namespace NissanConnectLib.Api;
 
@@ -39,7 +40,15 @@ internal class AutoRefreshTokenDelegatingHandler : DelegatingHandler
                     var newToken = await _nissanConnectClient.RefreshAccessToken(_nissanConnectClient.AccessToken.RefreshToken);
                     if (newToken is null) return response;
 
-                    _nissanConnectClient.AccessToken = newToken;
+                    Debug.WriteLine($"{nameof(AutoRefreshTokenDelegatingHandler)}: Refreshed access token");
+
+                    // Update the access token, the refreshed access token doesn't have a refresh token,
+                    // so we can't set AccessToken directly (_nissanConnectClient.AccessToken = newToken)
+                    _nissanConnectClient.AccessToken.AccessToken = newToken.AccessToken;
+                    _nissanConnectClient.AccessToken.IdToken = newToken.IdToken;
+                    _nissanConnectClient.AccessToken.ExpiresIn = newToken.ExpiresIn;
+
+                    _nissanConnectClient.OnAccessTokenRefreshed(_nissanConnectClient.AccessToken);
                 }
 
                 // Try to make the request again

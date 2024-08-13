@@ -1,4 +1,4 @@
-﻿using NissanConnectLib.Api;
+using NissanConnectLib.Api;
 using NissanConnectLib.Models;
 using System.Text.Json;
 
@@ -13,6 +13,13 @@ namespace NissanConnectLib.Example
             // Instantiate client
             var ncc = new NissanConnectClient(Configuration.Region.EU);
             var loggedIn = false;
+
+            // Save token to cache file when refreshed
+            ncc.AccessTokenRefreshed += (sender, token) =>
+            {
+                Console.WriteLine("Access token refreshed!");
+                File.WriteAllText(TOKEN_CACHE_FILE, JsonSerializer.Serialize(token));
+            };
 
             // Try to use token cache file
             if (File.Exists(TOKEN_CACHE_FILE))

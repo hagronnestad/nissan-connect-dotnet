@@ -1,4 +1,4 @@
-﻿using NissanConnectLib.Exceptions;
+using NissanConnectLib.Exceptions;
 using NissanConnectLib.Models;
 using System.Net;
 using System.Net.Http.Headers;
@@ -10,6 +10,8 @@ namespace NissanConnectLib.Api;
 
 public class NissanConnectClient
 {
+    public event EventHandler<OAuthAccessTokenResult> AccessTokenRefreshed;
+
     private readonly string _authBaseUrl;
     private readonly string _realm;
     private readonly string _clientId;
@@ -48,6 +50,11 @@ public class NissanConnectClient
         {
             InnerHandler = new HttpClientHandler()
         });
+    }
+
+    internal virtual void OnAccessTokenRefreshed(OAuthAccessTokenResult e)
+    {
+        AccessTokenRefreshed?.Invoke(this, e);
     }
 
     /// <summary>
