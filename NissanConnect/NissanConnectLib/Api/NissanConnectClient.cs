@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using NissanConnectLib.Exceptions;
 using NissanConnectLib.Models;
 using System.Net;
@@ -10,7 +12,7 @@ namespace NissanConnectLib.Api;
 
 public class NissanConnectClient
 {
-    public event EventHandler<OAuthAccessTokenResult> AccessTokenRefreshed;
+    public event EventHandler<OAuthAccessTokenResult>? AccessTokenRefreshed;
 
     private readonly string _authBaseUrl;
     private readonly string _realm;
@@ -22,6 +24,7 @@ public class NissanConnectClient
     private readonly string _userBaseUrl;
     private readonly string _carAdapterBaseUrl;
 
+    private readonly ILogger<NissanConnectClient> _logger;
     private readonly HttpClient _httpClient;
 
     /// <summary>
@@ -34,7 +37,7 @@ public class NissanConnectClient
     /// <see cref="Region.EU"/> is the default region.</cref>
     /// </summary>
     /// <param name="region"></param>
-    public NissanConnectClient(Region region = Region.EU)
+    public NissanConnectClient(Region region = Region.EU, ILogger<NissanConnectClient>? logger = default)
     {
         _authBaseUrl = Settings[region][ConfigurationKey.AuthBaseUrl];
         _realm = Settings[region][ConfigurationKey.Realm];
@@ -46,7 +49,10 @@ public class NissanConnectClient
         _userBaseUrl = Settings[region][ConfigurationKey.UserBaseUrl];
         _carAdapterBaseUrl = Settings[region][ConfigurationKey.CarAdapterBaseUrl];
 
-        _httpClient = new HttpClient(new AutoRefreshTokenDelegatingHandler(this)
+        // Set a null logger if none is provided to avoid null checks
+        _logger = logger ?? NullLogger<NissanConnectClient>.Instance;
+
+        _httpClient = new HttpClient(new AutoRefreshTokenDelegatingHandler(this, _logger)
         {
             InnerHandler = new HttpClientHandler()
         });
@@ -62,21 +68,12 @@ public class NissanConnectClient
     /// </summary>
     /// <param name="user"></param>
     /// <param name="pass"></param>
-    /// <returns></returns>
     public async Task<bool> LogIn(string user, string pass)
     {
-        var ia = await InitAuthentication();
-        if (ia == null) throw new LogInException();
-
-        var ali = await Authenticate(ia, user, pass);
-        if (ali == null) throw new LogInException();
-
-        var code = await Authorize();
-        if (code == null) throw new LogInException();
-
-        var token = await GetAccessToken(code);
-        if (token == null) throw new LogInException();
-
+        var ia = await InitAuthentication() ?? throw new LogInException();
+        var ali = await Authenticate(ia, user, pass) ?? throw new LogInException();
+        var code = await Authorize() ?? throw new LogInException();
+        var token = await GetAccessToken(code) ?? throw new LogInException();
         AccessToken = token;
         return true;
     }
@@ -93,8 +90,6 @@ public class NissanConnectClient
     /// <summary>
     /// Gets the unique user id for the logged in user.
     /// </summary>
-    /// <returns></returns>
-    /// <exception cref="NotLoggedInException"></exception>
     public async Task<string?> GetUserId()
     {
         var r = await _httpClient.GetFromJsonAsync<UserIdResult>($"{_userAdapterBaseUrl}/v1/users/current");
@@ -105,8 +100,6 @@ public class NissanConnectClient
     /// Gets a list of all the cars owned by the specified user.
     /// </summary>
     /// <param name="userId"></param>
-    /// <returns></returns>
-    /// <exception cref="NotLoggedInException"></exception>
     public async Task<List<Car>?> GetCars(string userId)
     {
         var r = await _httpClient.GetFromJsonAsync<CarsResult>($"{_userBaseUrl}/v5/users/{userId}/cars");
@@ -117,8 +110,6 @@ public class NissanConnectClient
     /// Gets the battery status of the specified car.
     /// </summary>
     /// <param name="vin"></param>
-    /// <returns></returns>
-    /// <exception cref="NotLoggedInException"></exception>
     public async Task<AttributesBatteryStatus?> GetBatteryStatus(string vin, bool forceRefresh = false, TimeSpan? waitTime = null)
     {
         if (forceRefresh)
@@ -136,8 +127,6 @@ public class NissanConnectClient
     /// Refresh the battery status of the specified car.
     /// </summary>
     /// <param name="vin"></param>
-    /// <returns></returns>
-    /// <exception cref="NotLoggedInException"></exception>
     public async Task<bool> RefreshBatteryStatus(string vin)
     {
         var data = new
@@ -158,8 +147,6 @@ public class NissanConnectClient
     /// Gets the HVAC status of the specified car.
     /// </summary>
     /// <param name="vin"></param>
-    /// <returns></returns>
-    /// <exception cref="NotLoggedInException"></exception>
     public async Task<AttributesHvacStatus?> GetHvacStatus(string vin, bool forceRefresh = false, TimeSpan? waitTime = null)
     {
         if (forceRefresh)
@@ -177,8 +164,6 @@ public class NissanConnectClient
     /// Refresh the HVAC status of the specified car. (Untested!)
     /// </summary>
     /// <param name="vin"></param>
-    /// <returns></returns>
-    /// <exception cref="NotLoggedInException"></exception>
     public async Task<bool> RefreshHvacStatus(string vin)
     {
         var data = new
@@ -199,8 +184,6 @@ public class NissanConnectClient
     /// Refresh the location of the specified car. (Untested!)
     /// </summary>
     /// <param name="vin"></param>
-    /// <returns></returns>
-    /// <exception cref="NotLoggedInException"></exception>
     public async Task<bool> RefreshLocation(string vin)
     {
         var data = new
@@ -221,8 +204,6 @@ public class NissanConnectClient
     /// Gets the cockpit status of the specified car.
     /// </summary>
     /// <param name="vin"></param>
-    /// <returns></returns>
-    /// <exception cref="NotLoggedInException"></exception>
     public async Task<AttributesCockpitStatus?> GetCockpitStatus(string vin)
     {
         var r = await _httpClient.GetFromJsonAsync<ApiResult<AttributesCockpitStatus>>($"{_carAdapterBaseUrl}/v1/cars/{vin}/cockpit");
@@ -233,8 +214,6 @@ public class NissanConnectClient
     /// Wake up the specified car (vehicle gateway?).
     /// </summary>
     /// <param name="vin"></param>
-    /// <returns></returns>
-    /// <exception cref="NotLoggedInException"></exception>
     public async Task<bool> WakeUpVehicle(string vin)
     {
         var data = new

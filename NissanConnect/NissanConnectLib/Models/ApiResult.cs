@@ -1,10 +1,9 @@
 ﻿using System.Text.Json.Serialization;
 
-namespace NissanConnectLib.Models
+namespace NissanConnectLib.Models;
+
+public class ApiResult<T>
 {
-    public class ApiResult<T>
-    {
-        [JsonPropertyName("data")]
-        public ApiResultData<T>? Data { get; set; }
-    }
+    [JsonPropertyName("data")]
+    public ApiResultData<T>? Data { get; set; }
 }
