@@ -45,6 +45,8 @@ Authentication uses the MyNISSAN OneID
 authorization-code flow with PKCE and exchanges the resulting identity token for
 Kamereon API tokens. Existing `NissanConnectClient` login and vehicle APIs remain
 unchanged.
+The EU configuration remains in use; ForgeRock `ClientSecret` and `Realm` settings
+and their old response models have been removed.
 
 You can pass an `ILogger<NissanConnectClient>` using
 `new NissanConnectClient(logger: logger)`, or register `NissanConnectClient` in a

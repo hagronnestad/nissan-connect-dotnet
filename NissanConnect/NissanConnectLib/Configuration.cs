@@ -10,10 +10,8 @@ public static class Configuration
     public enum ConfigurationKey
     {
         ClientId,
-        ClientSecret,
         Scope,
         AuthBaseUrl,
-        Realm,
         RedirectUri,
         AuthBrand,
         AuthClient,
@@ -30,10 +28,8 @@ public static class Configuration
             Region.EU, new Dictionary<ConfigurationKey, string>
             {
                 { ConfigurationKey.ClientId, "ZM3WK7ax1OtQKYQ8Qqzcv5VgiA8a" },
-                { ConfigurationKey.ClientSecret, string.Empty },
                 { ConfigurationKey.Scope, "openid name profile email offline_access" },
                 { ConfigurationKey.AuthBaseUrl, "https://login.mynissan-account.com" },
-                { ConfigurationKey.Realm, string.Empty },
                 { ConfigurationKey.RedirectUri, "com://wso2.service.nci" },
                 { ConfigurationKey.AuthBrand, "Nissan" },
                 { ConfigurationKey.AuthClient, "mynissanapp" },
