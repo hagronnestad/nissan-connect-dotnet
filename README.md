@@ -41,7 +41,9 @@ PM> NuGet\Install-Package NissanConnectLib
 <PackageReference Include="NissanConnectLib" Version="" />
 ```
 
-Authentication uses the MyNISSAN OneID
+NissanConnectLib targets .NET 8 and can also be used by .NET 9 and .NET 10
+applications without separate framework targets. The example and tests target
+.NET 8 as well. Authentication uses the MyNISSAN OneID
 authorization-code flow with PKCE and exchanges the resulting identity token for
 Kamereon API tokens. Existing `NissanConnectClient` login and vehicle APIs remain
 unchanged.
