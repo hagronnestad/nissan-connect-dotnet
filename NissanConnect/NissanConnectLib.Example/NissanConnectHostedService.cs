@@ -124,6 +124,18 @@ internal class NissanConnectHostedService : IHostedService
             _logger.LogInformation($"   ModelCode: {car.ModelCode}");
             _logger.LogInformation($"   ModelYear: {car.ModelYear}");
             _logger.LogInformation($"   VIN: {car.Vin[..3]}**********");
+            var activatedServices = car.ActivatedServices
+                .Select(service => service.Feature is { } feature
+                    ? $"{feature} ({service.Id})"
+                    : $"Unknown service ({service.Id ?? "missing ID"})")
+                .ToArray();
+            _logger.LogInformation("   Activated services: {Services}",
+                car.Services is null
+                    ? "(not provided by API)"
+                    : activatedServices.Length == 0
+                        ? "(none)"
+                        : string.Join(", ", activatedServices));
+
 
             // Get battery status for car
             var bs = await _ncc.GetBatteryStatus(car.Vin, _config.ForceBatteryStatusRefresh);

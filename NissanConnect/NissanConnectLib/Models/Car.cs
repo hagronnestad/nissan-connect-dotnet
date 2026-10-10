@@ -7,6 +7,15 @@ public class Car
     [JsonPropertyName("vin")]
     public string? Vin { get; set; }
 
+    [JsonPropertyName("services")]
+    public List<CarService>? Services { get; set; }
+
+    [JsonIgnore]
+    public IEnumerable<CarService> ActivatedServices =>
+        Services?.Where(service => string.Equals(
+            service.ActivationState, "ACTIVATED", StringComparison.OrdinalIgnoreCase))
+        ?? Enumerable.Empty<CarService>();
+
     [JsonPropertyName("color")]
     public string? Color { get; set; }
 

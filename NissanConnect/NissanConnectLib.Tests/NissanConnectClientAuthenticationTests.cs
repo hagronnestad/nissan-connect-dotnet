@@ -1,4 +1,5 @@
 using NissanConnectLib.Api;
+using NissanConnectLib.Enums;
 using NissanConnectLib.Exceptions;
 using NissanConnectLib.Models;
 using Microsoft.AspNetCore.Builder;
@@ -883,6 +884,112 @@ public class NissanConnectClientAuthenticationTests
         Assert.Empty(cars!);
         Assert.Equal(89, battery?.BatteryLevel);
         Assert.Empty(api.PendingResponses);
+    }
+
+    [Fact]
+    public async Task GetCars_ExposesActivatedServicesWithNumericAndStringIds()
+    {
+        var api = new ScriptedHandler();
+        api.Enqueue(request =>
+        {
+            Assert.Equal("/bff-web/v5/users/user-123/cars", request.Uri.AbsolutePath);
+            return JsonResponse("""
+                {
+                  "data": [
+                    {
+                      "vin": "TESTVIN",
+                      "services": [
+                        { "id": 319, "activationState": "ACTIVATED" },
+                        { "id": "299", "activationState": "ACTIVATED" },
+                        { "id": "new-service", "activationState": "activated" },
+                        { "id": 12, "activationState": "INACTIVE" }
+                      ]
+                    },
+                    { "vin": "SECONDVIN" },
+                    { "vin": "THIRDVIN", "services": [] }
+                  ]
+                }
+                """);
+        });
+        using var client = CreateClient(new ScriptedHandler(), api);
+
+        var cars = await client.GetCars("user-123");
+
+        Assert.NotNull(cars);
+        var services = cars[0].Services;
+        Assert.NotNull(services);
+        Assert.Equal(4, services.Count);
+        Assert.Equal(new[] { "319", "299", "new-service" },
+            cars[0].ActivatedServices.Select(service => service.Id));
+        Assert.Equal(CarServiceFeature.BatteryStatus, services[0].Feature);
+        Assert.Equal(CarServiceFeature.ChargingStart, services[1].Feature);
+        Assert.Null(services[2].Feature);
+        Assert.Equal(CarServiceFeature.MyCarFinder, services[3].Feature);
+        Assert.Equal("INACTIVE", services[3].ActivationState);
+        Assert.Null(cars[1].Services);
+        Assert.Empty(cars[1].ActivatedServices);
+        Assert.Empty(cars[2].Services!);
+        Assert.Empty(cars[2].ActivatedServices);
+        Assert.DoesNotContain("ActivatedServices", JsonSerializer.Serialize(cars[0]));
+        Assert.DoesNotContain("\"Feature\"", JsonSerializer.Serialize(cars[0]));
+        Assert.Empty(api.PendingResponses);
+    }
+
+    [Fact]
+    public void KnownServiceIds_ResolveToNamedFeaturesAndUnknownIdsRemainAvailable()
+    {
+        var expected = new Dictionary<string, CarServiceFeature>
+        {
+            ["12"] = CarServiceFeature.MyCarFinder,
+            ["35"] = CarServiceFeature.AppBasedNavigation,
+            ["37"] = CarServiceFeature.SendDestinationToCar,
+            ["40"] = CarServiceFeature.GooglePlacesSearch,
+            ["43"] = CarServiceFeature.PremiumTraffic,
+            ["97"] = CarServiceFeature.HornAndLights,
+            ["202"] = CarServiceFeature.VehicleStatusCheck,
+            ["217"] = CarServiceFeature.NavigationMapUpdates,
+            ["227"] = CarServiceFeature.LastMileNavigation,
+            ["229"] = CarServiceFeature.GoogleStreetView,
+            ["230"] = CarServiceFeature.GoogleSatelliteView,
+            ["235"] = CarServiceFeature.DrivingJourneyHistory,
+            ["243"] = CarServiceFeature.OnlineParkingInfo,
+            ["244"] = CarServiceFeature.OnlineRestaurantInfo,
+            ["245"] = CarServiceFeature.OnlineSpeedRestrictionInfo,
+            ["246"] = CarServiceFeature.WeatherInfo,
+            ["299"] = CarServiceFeature.ChargingStart,
+            ["311"] = CarServiceFeature.ClimateOnOffNotification,
+            ["314"] = CarServiceFeature.PlugInReminder,
+            ["317"] = CarServiceFeature.ChargingStopNotification,
+            ["319"] = CarServiceFeature.BatteryStatus,
+            ["320"] = CarServiceFeature.BatteryHeatingNotification,
+            ["322"] = CarServiceFeature.VehicleStateOfChargePercent,
+            ["340"] = CarServiceFeature.DrivingAnalysis,
+            ["341"] = CarServiceFeature.Co2GasSavings,
+            ["344"] = CarServiceFeature.ChargingConsumptionHistory,
+            ["345"] = CarServiceFeature.BatteryMonitoring,
+            ["347"] = CarServiceFeature.BatteryData,
+            ["354"] = CarServiceFeature.ChargingSpotUpdates,
+            ["366"] = CarServiceFeature.ClimateOnOff,
+            ["2042"] = CarServiceFeature.Temperature,
+            ["2121"] = CarServiceFeature.VehicleData
+        };
+
+        foreach (var (id, feature) in expected)
+        {
+            Assert.Equal(feature, new CarService { Id = id }.Feature);
+            Assert.Equal(id, ((int)feature).ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        foreach (var feature in Enum.GetValues<CarServiceFeature>())
+        {
+            Assert.Equal(feature,
+                new CarService { Id = ((int)feature).ToString(System.Globalization.CultureInfo.InvariantCulture) }
+                    .Feature);
+        }
+
+        Assert.Null(new CarService { Id = "999999" }.Feature);
+        Assert.Null(new CarService { Id = "future-service" }.Feature);
+        Assert.Null(new CarService().Feature);
     }
 
     private static NissanConnectClient CreateClient(

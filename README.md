@@ -63,6 +63,17 @@ clears credentials remembered from `LogIn`; cached tokens can still be refreshed
 but full-login fallback requires credentials from a subsequent successful login.
 Refresh notifications are invoked without holding the refresh lock.
 
+`GetCars` exposes the garage response's `Car.Services` (service ID and activation
+state) and a filtered `Car.ActivatedServices` view. Each service has a nullable
+`CarService.Feature` mapped to the known `CarServiceFeature` enum; unknown IDs
+remain accessible through `CarService.Id`. IDs are strings even when Nissan returns
+numeric JSON IDs, and service availability varies by vehicle. The example prints
+activated feature names and IDs, or indicates when the API omitted the service list.
+For example, check
+`car.ActivatedServices.Any(service => service.Feature == CarServiceFeature.ChargingStart)`
+after importing
+`NissanConnectLib.Enums`. An advertised service does not guarantee that its
+corresponding remote command is available or operational.
 
 
 ### Publish Nuget Package
