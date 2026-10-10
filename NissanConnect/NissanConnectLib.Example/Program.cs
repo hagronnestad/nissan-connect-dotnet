@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Console;
 using Microsoft.Extensions.Hosting;
 using NissanConnectLib.Api;
 
@@ -15,18 +14,16 @@ internal class Program
 
         .ConfigureAppConfiguration((hostingContext, config) =>
         {
-            config.AddEnvironmentVariables();
-            config.AddCommandLine(args);
             config.AddUserSecrets<Program>();
         })
         .ConfigureLogging(logging =>
         {
             logging.ClearProviders();
-            logging.AddConsole(options =>
+            logging.AddSimpleConsole(options =>
             {
-                options.FormatterName = nameof(CustomConsoleFormatter);
+                options.TimestampFormat = "[dd.MM.yyyy HH:mm:ss] ";
+                options.SingleLine = true;
             });
-            logging.AddConsoleFormatter<CustomConsoleFormatter, ConsoleFormatterOptions>();
         })
         .ConfigureServices((context, services) =>
         {
