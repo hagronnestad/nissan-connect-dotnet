@@ -1,10 +1,10 @@
 # Nissan Connect Client Library
 
-[![CI](https://github.com/hagronnestad/nissan-connect-dotnet/workflows/Nuget%20Release/badge.svg)](https://github.com/hagronnestad/nissan-connect-dotnet/actions/workflows/main.yml) [![Nuget](https://img.shields.io/nuget/v/NissanConnectLib)](https://www.nuget.org/packages/NissanConnectLib)
+[![CI](https://github.com/hagronnestad/nissan-connect-dotnet/actions/workflows/main.yml/badge.svg)](https://github.com/hagronnestad/nissan-connect-dotnet/actions/workflows/main.yml) [![Nuget](https://img.shields.io/nuget/v/NissanConnectLib)](https://www.nuget.org/packages/NissanConnectLib)
 
 This repository contains an ***unofficial*** C# .NET client library for the Nissan Connect API. This library is based on the great [dartnissanconnect](https://gitlab.com/tobiaswkjeldsen/dartnissanconnect)-library by [@Tobiaswk](https://github.com/Tobiaswk).
 
-⚠️ This library supports the EU-region only. (I think?)
+⚠️ Supports the European NissanConnect Services API (`Region.EU`). Other regional APIs are not implemented or tested. This is not a client for the legacy NissanConnect EV/Carwings API.
 
 ---
 
@@ -13,7 +13,9 @@ This repository contains an ***unofficial*** C# .NET client library for the Niss
 - [Nissan Connect Client Library](#nissan-connect-client-library)
   - [Example Program](#example-program)
   - [Nuget](#nuget)
-    - [Publish Nuget Package](#publish-nuget-package)
+  - [Usage](#usage)
+  - [Upgrade Notes](#upgrade-notes)
+  - [Publish Nuget Package](#publish-nuget-package)
   - [Disclaimer](#disclaimer)
 
 
@@ -21,64 +23,74 @@ This repository contains an ***unofficial*** C# .NET client library for the Niss
 
 [An example program can be found here.](NissanConnect/NissanConnectLib.Example/)
 
-*Output preview of the example program:*
+Set these values in the example project's .NET user-secrets `secrets.json`, not in
+the repository:
 
-![](Screenshots/02-example-output-2.png)
+```json
+{
+  "Username": "your-mynissan-email@example.com",
+  "Password": "your-mynissan-password",
+  "ForceBatteryStatusRefresh": false
+}
+```
+
+Run from the repository root:
+
+```sh
+dotnet run --project NissanConnect/NissanConnectLib.Example
+```
+
+Keep `ForceBatteryStatusRefresh` set to `false` for read-only access; `true` sends
+a remote battery-refresh action. The example saves tokens in `token.cache`;
+treat that file as sensitive.
+
+*Example program output:*
+
+![Example program output](Screenshots/03-example-output-3.png)
 
 
 ## Nuget
 
-This library is available as a Nuget [here](https://www.nuget.org/packages/NissanConnectLib).
+[Install NissanConnectLib from NuGet.](https://www.nuget.org/packages/NissanConnectLib)
 
-[![Nuget](https://img.shields.io/nuget/v/NissanConnectLib)](https://www.nuget.org/packages/NissanConnectLib)
-
-*Nuget package installation commands:*
-```
-dotnet add package NissanConnectLib 
-
-PM> NuGet\Install-Package NissanConnectLib
-
-<PackageReference Include="NissanConnectLib" Version="" />
+```sh
+dotnet add package NissanConnectLib
 ```
 
-NissanConnectLib targets .NET 8 and can also be used by .NET 9 and .NET 10
-applications without separate framework targets. The example and tests target
-.NET 8 as well. Authentication uses the MyNISSAN OneID
-authorization-code flow with PKCE and exchanges the resulting identity token for
-Kamereon API tokens. Existing `NissanConnectClient` login and vehicle APIs remain
-unchanged.
-The EU configuration remains in use; ForgeRock `ClientSecret` and `Realm` settings
-and their old response models have been removed.
+## Usage
 
-You can pass an `ILogger<NissanConnectClient>` using
-`new NissanConnectClient(logger: logger)`, or register `NissanConnectClient` in a
-`Microsoft.Extensions.DependencyInjection` container to have the logger injected.
-Without a logger, the library uses a null logger. It logs authentication and
-vehicle-action outcomes without logging credentials, tokens, or vehicle IDs.
-Dispose manually created clients when finished; dependency injection disposes
-registered clients with the service provider.
+Targets .NET 8; .NET 9 and .NET 10 applications can also consume the library.
+`LogIn` uses MyNISSAN OneID authorization-code authentication with PKCE, then
+exchanges the identity token for Kamereon API tokens.
 
-Each full login uses a fresh cookie session. Logout or token replacement prevents
-older in-flight authentication results from replacing the current session or
-replaying its requests under another account. Setting a different `AccessToken`
-clears credentials remembered from `LogIn`; cached tokens can still be refreshed,
-but full-login fallback requires credentials from a subsequent successful login.
-Refresh notifications are invoked without holding the refresh lock.
+Pass `ILogger<NissanConnectClient>` via `new NissanConnectClient(logger: logger)`
+or dependency injection; logging is optional. Dispose manually created clients
+when finished. The library does not log credentials, tokens, or vehicle IDs.
 
-`GetCars` exposes the garage response's `Car.Services` (service ID and activation
-state) and a filtered `Car.ActivatedServices` view. Each service has a nullable
-`CarService.Feature` mapped to the known `CarServiceFeature` enum; unknown IDs
-remain accessible through `CarService.Id`. IDs are strings even when Nissan returns
-numeric JSON IDs, and service availability varies by vehicle. The example prints
-activated feature names and IDs, or indicates when the API omitted the service list.
-For example, check
-`car.ActivatedServices.Any(service => service.Feature == CarServiceFeature.ChargingStart)`
-after importing
-`NissanConnectLib.Enums`. An advertised service does not guarantee that its
-corresponding remote command is available or operational.
+Set `AccessToken` to restore cached authentication and use `AccessTokenRefreshed`
+to save renewed tokens. Automatic full-login fallback requires credentials from
+a successful `LogIn`; assigning a different token clears remembered credentials.
+`LogOut` clears local authentication only.
 
+`GetCars` exposes `Car.Services` and the filtered `Car.ActivatedServices`.
+`CarService.Feature` maps known IDs to `CarServiceFeature`; unknown IDs remain in
+`CarService.Id`. For example, with `NissanConnectLib.Enums` imported:
 
-### Publish Nuget Package
+```csharp
+bool canStartCharging = car.ActivatedServices
+    .Any(service => service.Feature == CarServiceFeature.ChargingStart);
+```
+
+Activated services are advertised capabilities, not guarantees that commands work.
+They do not add controls to this library.
+
+## Upgrade Notes
+
+The public login and vehicle method signatures are retained. Legacy ForgeRock
+response/callback models and `ConfigurationKey.ClientSecret`/`Realm` are removed;
+code referencing them must be updated. `ConfigurationKey` numeric values also changed.
+
+## Publish Nuget Package
 Create a new GitHub Release with a tag to trigger the `Nuget Release`-action.
 
 
