@@ -15,6 +15,10 @@ public static class Configuration
         AuthBaseUrl,
         Realm,
         RedirectUri,
+        AuthBrand,
+        AuthClient,
+        AuthLocale,
+        KamereonScope,
         CarAdapterBaseUrl,
         UserAdapterBaseUrl,
         UserBaseUrl
@@ -25,12 +29,16 @@ public static class Configuration
         {
             Region.EU, new Dictionary<ConfigurationKey, string>
             {
-                { ConfigurationKey.ClientId, "a-ncb-nc-android-prod" },
-                { ConfigurationKey.ClientSecret, "6GKIax7fGT5yPHuNmWNVOc4q5POBw1WRSW39ubRA8WPBmQ7MOxhm75EsmKMKENem" },
-                { ConfigurationKey.Scope, "openid profile vehicles" },
-                { ConfigurationKey.AuthBaseUrl, "https://prod.eu2.auth.kamereon.org/kauth" },
-                { ConfigurationKey.Realm, "a-ncb-prod" },
-                { ConfigurationKey.RedirectUri, "org.kamereon.service.nci:/oauth2redirect" },
+                { ConfigurationKey.ClientId, "ZM3WK7ax1OtQKYQ8Qqzcv5VgiA8a" },
+                { ConfigurationKey.ClientSecret, string.Empty },
+                { ConfigurationKey.Scope, "openid name profile email offline_access" },
+                { ConfigurationKey.AuthBaseUrl, "https://login.mynissan-account.com" },
+                { ConfigurationKey.Realm, string.Empty },
+                { ConfigurationKey.RedirectUri, "com://wso2.service.nci" },
+                { ConfigurationKey.AuthBrand, "Nissan" },
+                { ConfigurationKey.AuthClient, "mynissanapp" },
+                { ConfigurationKey.AuthLocale, "en_GB" },
+                { ConfigurationKey.KamereonScope, "openid profile vehicles" },
                 { ConfigurationKey.CarAdapterBaseUrl, "https://alliance-platform-caradapter-prod.apps.eu2.kamereon.io/car-adapter" },
                 { ConfigurationKey.UserAdapterBaseUrl, "https://alliance-platform-usersadapter-prod.apps.eu2.kamereon.io/user-adapter" },
                 { ConfigurationKey.UserBaseUrl, "https://nci-bff-web-prod.apps.eu2.kamereon.io/bff-web" }
