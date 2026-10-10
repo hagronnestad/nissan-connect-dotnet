@@ -1,0 +1,38 @@
+name: Build and Test
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    name: Build and test (.NET 8)
+    runs-on: ubuntu-latest
+
+    env:
+      BUILD_CONFIG: Release
+      SOLUTION: ./NissanConnect/NissanConnect.sln
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore "$SOLUTION"
+
+      - name: Build
+        run: dotnet build "$SOLUTION" --configuration "$BUILD_CONFIG" --no-restore
+
+      - name: Test
+        run: dotnet test "$SOLUTION" --configuration "$BUILD_CONFIG" --no-build --no-restore

@@ -1,10 +1,10 @@
-﻿using Microsoft.Extensions.Logging;
-using System.Net.Http.Headers;
+using Microsoft.Extensions.Logging;
 using System.Net;
+using System.Net.Http.Headers;
 
 namespace NissanConnectLib.Api;
 
-internal class AutoRefreshTokenDelegatingHandler : DelegatingHandler
+internal sealed class AutoRefreshTokenDelegatingHandler : DelegatingHandler
 {
     private readonly NissanConnectClient _nissanConnectClient;
     private readonly ILogger _logger;
@@ -15,61 +15,57 @@ internal class AutoRefreshTokenDelegatingHandler : DelegatingHandler
         _logger = logger;
     }
 
-    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    protected override async Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request,
+        CancellationToken cancellationToken)
     {
-        try
+        var authentication = _nissanConnectClient.GetAuthenticationSnapshot();
+        var accessToken = authentication.AccessToken;
+        if (string.IsNullOrEmpty(accessToken))
         {
-            _logger.LogTrace($"{nameof(AutoRefreshTokenDelegatingHandler)}: {nameof(SendAsync)}");
+            return await base.SendAsync(request, cancellationToken);
+        }
 
-            // Pass the request immediately if we don't have an access token 
-            if (_nissanConnectClient.AccessToken is null)
-            {
-                _logger.LogTrace("AccessToken is null, passing request immediately");
-                return await base.SendAsync(request, cancellationToken);
-            }
-
-            // Add the bearer token to the request
-            _logger.LogDebug("Adding bearer token to request");
-            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _nissanConnectClient.AccessToken.AccessToken);
-
-            // Try to make the request
-            var response = await base.SendAsync(request, cancellationToken);
-
-            if (response.StatusCode == HttpStatusCode.Unauthorized)
-            {
-                _logger.LogWarning("Request failed with status code Unauthorized");
-
-                // Check if we have a refresh token
-                if (_nissanConnectClient.AccessToken.RefreshToken is not null)
-                {
-                    // Refresh token
-                    _logger.LogInformation("Trying to refresh access token");
-                    var newToken = await _nissanConnectClient.RefreshAccessToken(_nissanConnectClient.AccessToken.RefreshToken);
-                    if (newToken is null) return response;
-
-                    _logger.LogInformation("Refreshed access token");
-
-                    // Update the access token, the refreshed access token doesn't have a refresh token,
-                    // so we can't set AccessToken directly (_nissanConnectClient.AccessToken = newToken)
-                    _nissanConnectClient.AccessToken.AccessToken = newToken.AccessToken;
-                    _nissanConnectClient.AccessToken.IdToken = newToken.IdToken;
-                    _nissanConnectClient.AccessToken.ExpiresIn = newToken.ExpiresIn;
-
-                    // Notify the client that the access token has been refreshed
-                    _nissanConnectClient.OnAccessTokenRefreshed(_nissanConnectClient.AccessToken);
-
-                    // Try to make the request again
-                    _logger.LogDebug("Send the request again with the new access token");
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", _nissanConnectClient.AccessToken.AccessToken);
-                    response = await base.SendAsync(request, cancellationToken);
-                }
-            }
-
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        using var retryRequest = await HttpRequestCloner.CloneAsync(request, cancellationToken);
+        var response = await base.SendAsync(request, cancellationToken);
+        if (response.StatusCode != HttpStatusCode.Unauthorized)
+        {
             return response;
         }
-        catch (Exception e)
+
+        _logger.LogDebug("Kamereon request returned HTTP 401; renewing authentication before retry.");
+        try
         {
-            _logger.LogError(e, "Error while sending request");
+            var renewed = await _nissanConnectClient.RefreshAfterUnauthorized(
+                accessToken, authentication.Version, cancellationToken);
+            var currentAuthentication = _nissanConnectClient.GetAuthenticationSnapshot();
+            if (currentAuthentication.Version != authentication.Version)
+            {
+                _logger.LogDebug("Authentication changed while the request was pending; not retrying.");
+                return response;
+            }
+
+            if (!renewed || string.IsNullOrEmpty(currentAuthentication.AccessToken))
+            {
+                _logger.LogWarning("Kamereon request could not be retried because authentication was not renewed.");
+                return response;
+            }
+
+            response.Dispose();
+            retryRequest.Headers.Authorization = new AuthenticationHeaderValue(
+                "Bearer", currentAuthentication.AccessToken);
+            var retryResponse = await base.SendAsync(retryRequest, cancellationToken);
+            if (retryResponse.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                _logger.LogWarning("Kamereon request returned HTTP 401 after authentication renewal.");
+            }
+
+            return retryResponse;
+        }
+        catch
+        {
+            response.Dispose();
             throw;
         }
     }

@@ -1,6 +1,16 @@
 ﻿namespace NissanConnectLib.Exceptions;
 
-internal class LogInException : Exception
+public class LogInException : Exception
 {
-    public LogInException() : base() { }
+    public LogInException()
+    {
+    }
+
+    public LogInException(string message) : base(message)
+    {
+    }
+
+    public LogInException(string message, Exception innerException) : base(message, innerException)
+    {
+    }
 }

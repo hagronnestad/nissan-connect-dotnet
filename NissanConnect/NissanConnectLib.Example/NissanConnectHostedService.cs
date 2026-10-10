@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Hosting;
 using NissanConnectLib.Api;
 using NissanConnectLib.Models;
+using System.Net;
 using System.Text.Json;
 
 namespace NissanConnectLib.Example;
@@ -22,7 +23,6 @@ internal class NissanConnectHostedService : IHostedService
         _logger = logger;
     }
 
-    [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "CA2254:Template should be a static expression", Justification = "<Pending>")]
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         try
@@ -58,15 +58,24 @@ internal class NissanConnectHostedService : IHostedService
             var cachedToken = JsonSerializer.Deserialize<OAuthAccessTokenResult>(File.ReadAllText(_config.TokenCacheFile));
             _ncc.AccessToken = cachedToken;
 
-            if (await _ncc.GetUserId() is null)
+            try
             {
-                _logger.LogWarning("Could not get user ID using cached token, deleting cache file...");
-                File.Delete(_config.TokenCacheFile);
+                loggedIn = await _ncc.GetUserId() is not null;
+            }
+            catch (HttpRequestException exception) when (exception.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                _logger.LogWarning("Cached authentication was rejected; logging in again.");
+            }
+
+            if (loggedIn)
+            {
+                _logger.LogInformation("Cached token is valid!");
             }
             else
             {
-                _logger.LogInformation("Cached token is valid!");
-                loggedIn = true;
+                _logger.LogWarning("Cached authentication is invalid; deleting cache file.");
+                _ncc.LogOut();
+                File.Delete(_config.TokenCacheFile);
             }
         }
 
@@ -81,17 +90,9 @@ internal class NissanConnectHostedService : IHostedService
             }
 
             // Log in using a username and password
-            loggedIn = await _ncc.LogIn(_config.Username, _config.Password);
-            if (loggedIn)
-            {
-                _logger.LogInformation("Logged in using username and password. Writing token to cache file...");
-                File.WriteAllText(_config.TokenCacheFile, JsonSerializer.Serialize(_ncc.AccessToken));
-            }
-            else
-            {
-                _logger.LogError("Login failed!");
-                return;
-            }
+            await _ncc.LogIn(_config.Username, _config.Password);
+            _logger.LogInformation("Logged in using username and password. Writing token to cache file...");
+            File.WriteAllText(_config.TokenCacheFile, JsonSerializer.Serialize(_ncc.AccessToken));
         }
 
         // Get the user id
@@ -124,6 +125,17 @@ internal class NissanConnectHostedService : IHostedService
             _logger.LogInformation($"   ModelCode: {car.ModelCode}");
             _logger.LogInformation($"   ModelYear: {car.ModelYear}");
             _logger.LogInformation($"   VIN: {car.Vin[..3]}**********");
+            var activatedServices = car.ActivatedServices
+                .Select(service => service.Feature is { } feature
+                    ? $"{feature} ({service.Id})"
+                    : $"Unknown service ({service.Id ?? "missing ID"})")
+                .ToArray();
+            _logger.LogInformation("   Activated services: {Services}",
+                car.Services is null
+                    ? "(not provided by API)"
+                    : activatedServices.Length == 0
+                        ? "(none)"
+                        : string.Join(", ", activatedServices));
 
             // Get battery status for car
             var bs = await _ncc.GetBatteryStatus(car.Vin, _config.ForceBatteryStatusRefresh);
